@@ -1,0 +1,495 @@
+<html>
+    <head>
+        <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+
+        <title>
+            냥코 뽑기 계산기
+        </title>
+
+        <script>
+            // 회당등장률 p, 목표 총 k개, 목표중 o개 이상, n번 실행시 성공률
+            function RPKN(p, k, o, n) {
+                // i개 성공 0번째 상태
+                let table = [1];
+                for (let i = 0; i < o; i++) {
+                    table.push(0);
+                }
+                // n회 진행
+                for (let c = 0; c < n; c++) {
+                    for (let i = o; i > 0; i--) {
+                        if (i == o) {
+                            table[i] = table[i] + table[i - 1] * (p * (k - i + 1));
+                            continue;
+                        }
+                        table[i] = table[i] * (1 - (p * (k - i))) + table[i - 1] * (p * (k - i + 1));
+                    }
+                    table[0] = table[0] * (1 - (p * k));
+                }
+
+                return table[o];
+            }
+
+            // 회당등장률 p, 확정시등장률 r, 목표 k개, n번 실행시 성공률
+            function FPKN(p, r, k, n) {
+                // i개 성공 0번째 상태
+                let table = [1];
+                for (let i = 0; i < k; i++) {
+                    table.push(0);
+                }
+                // n회 진행
+                for (let c = 0; c < n; c++) {
+                    // 일반뽑 10회
+                    for (let t = 0; t < 10; t++) {
+                        for (let i = k; i > 0; i--) {
+                            table[i] = table[i] * (1 - (p * (k - i))) + table[i - 1] * (p * (k - i + 1));
+                        }
+                        table[0] = table[0] * (1 - (p * k));
+                    }
+                    // 확정 1회
+                    for (let i = k; i > 0; i--) {
+                        table[i] = table[i] * (1 - (r * (k - i))) + table[i - 1] * (r * (k - i + 1));
+                    }
+                    table[0] = table[0] * (1 - (r * k));
+                }
+
+                return table[k];
+            }
+
+            // 회당등장률 p, 확정시등장률 r, 목표 k개, 목표성공률 q 최소실행횟수
+            function FPKQ(p, r, k, q) {
+                // i개 성공 0번째 상태
+                let table = [1];
+                for (let i = 0; i < k; i++) {
+                    table.push(0);
+                }
+                // 횟수 누적
+                let n = 0;
+                // 진행
+                while (table[k] < q) {
+                    // 일반뽑 10회
+                    for (let t = 0; t < 10; t++) {
+                        for (let i = k; i > 0; i--) {
+                            table[i] = table[i] * (1 - (p * (k - i))) + table[i - 1] * (p * (k - i + 1));
+                        }
+                        table[0] = table[0] * (1 - (p * k));
+                    }
+                    // 확정 1회
+                    for (let i = k; i > 0; i--) {
+                        table[i] = table[i] * (1 - (r * (k - i))) + table[i - 1] * (r * (k - i + 1));
+                    }
+                    table[0] = table[0] * (1 - (r * k));
+
+                    n++;
+                }
+
+                return n;
+            }
+
+            // 회당등장률 p, 목표 k개, n번 실행시 성공률
+            function PKN(p, k, n) {
+                // i개 성공 0번째 상태
+                let table = [1];
+                for (let i = 0; i < k; i++) {
+                    table.push(0);
+                }
+                // n회 진행
+                for (let c = 0; c < n; c++) {
+                    for (let i = k; i > 0; i--) {
+                        table[i] = table[i] * (1 - (p * (k - i))) + table[i - 1] * (p * (k - i + 1));
+                    }
+                    table[0] = table[0] * (1 - (p * k));
+                }
+
+                return table[k];
+            }
+
+            // 회당등장률 p, 목표 k개, 목표성공률 q 최소실행횟수
+            function PKQ(p, k, q) {
+                // i개 성공 0번째 상태
+                let table = [1];
+                for (let i = 0; i < k; i++) {
+                    table.push(0);
+                }
+                // 횟수 누적
+                let n = 0;
+                // 진행
+                while (table[k] < q) {
+                    for (let i = k; i > 0; i--) {
+                        table[i] = table[i] * (1 - (p * (k - i))) + table[i - 1] * (p * (k - i + 1));
+                    }
+                    table[0] = table[0] * (1 - (p * k));
+
+                    n++;
+                }
+
+                return n;
+            }
+
+            // 회당성공률 p 실행 n회 성공확률
+            function NTimes(p, n) {
+                // 회당실패율
+                const fp = 1 - p;
+                // 누적실패율
+                let nf = 1;
+                for (let i = 0; i < n; i++) {
+                    nf *= fp;
+                }
+                // 누적성공률
+                let ns = 1 - nf;
+                
+                return ns;
+            }
+
+            // 회당성공률 p 목표성공률 q 최소실행횟수
+            function ForQ(p, q) {
+                // 회당실패율
+                const fp = 1 - p;
+                // 누적실패율
+                let nf = 1;
+                // 실패율 최대값
+                const fo = 1 - q;
+                // 횟수 누적
+                let n = 0;
+                // 진행
+                while (nf > fo) {
+                    nf *= fp;
+
+                    n++;
+                }
+                
+                return n;
+            }
+        </script>
+    </head>
+
+    <body>
+        <div id="app">
+            <div id="pick">
+                <h2> 뽑기 계산 </h2>
+                <p>
+                    <h4> 뽑기 정보 </h4>
+                    울슈레 확률: <input v-model.number="pickp" type="number">% <br>
+                    울슈레 개수: <input v-model.numer="pickm" type="number">개 <br>
+                </p>
+
+                <p>
+                    <h4> 뽑기 회수당 성공률 </h4>
+                    <input v-model.numer="picknk" type="number">가지를 노리고 <input v-model.numer="picknn" type="number">번 뽑을 시 성공률: <span> {{ picknp * 100 }}% </span>
+                </p>
+
+                <p>
+                    <h4> 목표 성공률을 위한 뽑기 횟수 </h4>
+                    <input v-model.numer="pickqq" type="number">% 이상의 확률로 <input v-model.numer="pickqk" type="number">가지를 뽑으려면 <br>
+                    최소 <span> {{ pickqn }}회의 뽑기 필요 ({{ pickqp * 100 }}%) </span>
+                </p>
+            </div>
+
+            <hr>
+
+            <div id="fixed">
+                <h2> 확뽑 계산 </h2>
+                <p>
+                    <h4> 뽑기 정보 </h4>
+                    울슈레 확률: <input v-model.number="fixedp" type="number">% <br>
+                    울슈레 개수: <input v-model.numer="fixedm" type="number">개 <br>
+                    확뽑 1회: 10뽑 + 1울슈레
+                </p>
+
+                <p>
+                    <h4> 확뽑 회수당 성공률 </h4>
+                    <input v-model.numer="fixednk" type="number">가지를 노리고 <input v-model.numer="fixednn" type="number">번 확뽑시 성공률: <span> {{ fixednp * 100 }}% </span>
+                </p>
+
+                <p>
+                    <h4> 목표 성공률을 위한 확뽑 횟수 </h4>
+                    <input v-model.numer="fixedqq" type="number">% 이상의 확률로 <input v-model.numer="fixedqk" type="number">가지를 뽑으려면 <br>
+                    최소 <span> {{ fixedqn }}회의 확뽑 필요 ({{ fixedqp * 100 }}%) </span>
+                </p>
+            </div>
+
+            <hr>
+
+            <div id="reset">
+                <h2> 리세 계산 </h2>
+
+                <p>
+                    <h4> 뽑기 정보 </h4>
+                    울슈레 확률: <input v-model.number="resetp" type="number">% <br>
+                    울슈레 개수: <input v-model.numer="resetm" type="number">개 <br>
+                </p>
+
+                <p>
+                    <h4> 리세 목표 </h4>
+                    회당 레어뽑기 <input v-model.number="resetc" type="number">번 <br>
+                    울슈레 <input v-model.number="resetk" type="number">개 중에서 <input v-model.numer="resett" type="number">개 이상
+                </p>
+
+                <p>
+                    <h4> 회당 성공률 </h4>
+                    {{ resetr * 100 }}%
+                </p>
+
+                <p>
+                    <h4> 리세 회수당 성공률 </h4>
+                    <input v-model.numer="resetnn" type="number">번 리세 시 성공률: <span> {{ resetnp * 100 }}% </span>
+                </p>
+
+                <p>
+                    <h4> 목표 성공률을 위한 리세 횟수 </h4>
+                    <input v-model.numer="resetqq" type="number">% 이상의 확률로 성공하려면 <br>
+                    최소 <span> {{ resetqn }}회의 리셋 필요 ({{ resetqp * 100 }}%) </span>
+                </p>
+            </div>
+        </div>
+
+        <script>
+            function pvalid(p) {
+                if (!p) {
+                    return false;
+                }
+                if (p > 1) {
+                    return false;
+                }
+                if (p <= 0) {
+                    return false;
+                }
+                return true;
+            }
+            function nvalid(n) {
+                if (!n) {
+                    return false;
+                }
+                if (n <= 0) {
+                    return false;
+                }
+                return n % 1 === 0;
+            }
+
+            var app2 = new Vue({
+                el: '#app',
+                data: {
+                        pickp: 5,
+                        pickm: 8,
+                        picknk: 1,
+                        picknn: 1,
+                        pickqk: 1,
+                        pickqq: 90,
+
+                        fixedp: 5,
+                        fixedm: 8,
+                        fixednk: 1,
+                        fixednn: 1,
+                        fixedqk: 1,
+                        fixedqq: 90,
+
+                        resetp: 9,
+                        resetm: 96,
+                        resetc: 7,
+                        resetk: 5,
+                        resett: 1,
+                        resetnn: 10,
+                        resetqq: 50,
+                    },
+                computed: {
+                    picknp: function() {
+                        if (!nvalid(this.pickm)) {
+                            return NaN;
+                        }
+
+                        if (!nvalid(this.picknn)) {
+                            return NaN;
+                        }
+
+                        if (!nvalid(this.picknk)) {
+                            return NaN;
+                        }
+
+                        if (!pvalid(this.pickp / 100)) {
+                            return NaN;
+                        }
+
+                        if (!pvalid(this.pickp / this.pickm / 100)) {
+                            return NaN;
+                        }
+
+
+                        return PKN(this.pickp / this.pickm / 100, this.picknk, this.picknn);
+                    },
+                    pickqn: function() {
+                        if (!nvalid(this.pickm)) {
+                            return NaN;
+                        }
+
+                        if (!pvalid(this.pickqq / 100)) {
+                            return NaN;
+                        }
+
+                        if (!nvalid(this.pickqk)) {
+                            return NaN;
+                        }
+
+                        if (!pvalid(this.pickp / 100)) {
+                            return NaN;
+                        }
+
+                        if (!pvalid(this.pickp / this.pickm / 100)) {
+                            return NaN;
+                        }
+
+                        return PKQ(this.pickp / this.pickm / 100, this.pickqk, this.pickqq / 100);
+                    },
+                    pickqp: function() {
+                        if (!nvalid(this.pickm)) {
+                            return NaN;
+                        }
+
+                        if (!nvalid(this.pickqn)) {
+                            return NaN;
+                        }
+
+                        if (!nvalid(this.pickqk)) {
+                            return NaN;
+                        }
+
+                        if (!pvalid(this.pickp / 100)) {
+                            return NaN;
+                        }
+
+                        if (!pvalid(this.pickp / this.pickm / 100)) {
+                            return NaN;
+                        }
+
+                        return PKN(this.pickp / this.pickm / 100, this.pickqk, this.pickqn);
+                    },
+
+                    fixednp: function() {
+                        if (!nvalid(this.fixedm)) {
+                            return NaN;
+                        }
+
+                        if (!nvalid(this.fixednn)) {
+                            return NaN;
+                        }
+
+                        if (!nvalid(this.fixednk)) {
+                            return NaN;
+                        }
+
+                        if (!pvalid(this.fixedp / 100)) {
+                            return NaN;
+                        }
+
+                        if (!pvalid(this.fixedp / this.fixedm / 100)) {
+                            return NaN;
+                        }
+
+                        return FPKN(this.fixedp / this.fixedm / 100, 1 / this.fixedm, this.fixednk, this.fixednn);
+                    },
+                    fixedqn: function() {
+                        if (!nvalid(this.fixedm)) {
+                            return NaN;
+                        }
+
+                        if (!pvalid(this.fixedqq / 100)) {
+                            return NaN;
+                        }
+
+                        if (!nvalid(this.fixedqk)) {
+                            return NaN;
+                        }
+
+                        if (!pvalid(this.fixedp / 100)) {
+                            return NaN;
+                        }
+
+                        if (!pvalid(this.fixedp / this.fixedm / 100)) {
+                            return NaN;
+                        }
+
+                        return FPKQ(this.fixedp / this.fixedm / 100, 1 / this.fixedm, this.fixedqk, this.fixedqq / 100);
+                    },
+                    fixedqp: function() {
+                        if (!nvalid(this.fixedm)) {
+                            return NaN;
+                        }
+
+                        if (!nvalid(this.fixedqn)) {
+                            return NaN;
+                        }
+
+                        if (!nvalid(this.fixedqk)) {
+                            return NaN;
+                        }
+
+                        if (!pvalid(this.fixedp / 100)) {
+                            return NaN;
+                        }
+
+                        if (!pvalid(this.fixedp / this.fixedm / 100)) {
+                            return NaN;
+                        }
+
+                        return FPKN(this.fixedp / this.fixedm / 100, 1 / this.fixedm, this.fixedqk, this.fixedqn);
+                    },
+
+                    resetr: function() {
+                        if (!pvalid(this.resetp / 100)) {
+                            return NaN;
+                        }
+
+                        if (!nvalid(this.resetm)) {
+                            return NaN;
+                        }
+
+                        if (!nvalid(this.resett)) {
+                            return NaN;
+                        }
+
+                        if (!nvalid(this.resetk)) {
+                            return NaN;
+                        }
+
+                        if (!nvalid(this.resetc)) {
+                            return NaN;
+                        }
+
+                        if (this.resetk < this.resett) {
+                            return NaN;
+                        }
+
+                        return RPKN(this.resetp / 100 / this.resetm, this.resetk, this.resett, this.resetc);
+                    },
+                    resetnp: function() {
+                        if (!this.resetr) {
+                            return NaN;
+                        }
+
+                        if (!nvalid(this.resetnn)) {
+                            return NaN;
+                        }
+
+                        return NTimes(this.resetr, this.resetnn);
+                    },
+                    resetqn: function() {
+                        if (!this.resetr) {
+                            return NaN;
+                        }
+
+                        if (!pvalid(this.resetqq / 100)) {
+                            return NaN;
+                        }
+
+                        return ForQ(this.resetr, this.resetqq / 100);
+                    },
+                    resetqp: function() {
+                        if (!this.resetqn) {
+                            return NaN;
+                        }
+
+                        return NTimes(this.resetr, this.resetqn);
+                    },
+                },
+            });
+        </script>
+    </body>
+</html>
